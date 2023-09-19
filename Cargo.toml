@@ -1,0 +1,11 @@
+[package]
+name = "tcg-invoice-converter"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+csv = "1.2.2"
+pdf = "0.8.1"
+pdf-extract = "0.7.2"
