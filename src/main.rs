@@ -15,7 +15,8 @@ fn read_pdf() -> String {
     };
 
     // let path = Path::with_file_name(&root, "tcg-invoice-converter/order.pdf");
-    let path = Path::with_file_name(&root, "tcg-invoice-converter/src/order.pdf");
+    // let path = Path::with_file_name(&root, "tcg-invoice-converter/src/order.pdf");
+    let path = Path::with_file_name(&root, "order.pdf");
 
     let _pdf: String = match extract_text(path) {
         Ok(pdf_output) => pdf_output,
