@@ -3,28 +3,38 @@ mod data;
 use crate::data::card::{Card, CardBuilder};
 use csv::Writer;
 use pdf_extract::extract_text;
-use std::env::current_dir;
+use std::env::current_exe;
 use std::error::Error;
-// use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 fn read_pdf() -> String {
-    let root = match current_dir() {
-        Ok(path_buf) => path_buf,
-        Err(error) => panic!("Problem getting current dir: {:?}", error),
-    };
+    let csv_path: PathBuf = read_pdf_path();
+    println!("Reading file in path [{:?}]", &csv_path);
 
-    // let path = Path::with_file_name(&root, "tcg-invoice-converter/order.pdf");
-    // let path = Path::with_file_name(&root, "tcg-invoice-converter/src/order.pdf");
-    let path = Path::join(&root, "app/order.pdf");
-    println!("File path: {:?}", path);
-
-    let _pdf: String = match extract_text(path) {
+    let _pdf: String = match extract_text(csv_path) {
         Ok(pdf_output) => pdf_output,
         Err(error) => panic!("Problem opening the file: {:?}", error),
     };
 
     return _pdf;
+}
+
+fn root_path() -> Result<PathBuf, Box<dyn Error>> {
+    let exe_path = match current_exe() {
+        Ok(path_buf) => path_buf,
+        Err(error) => return Err(error.into()),
+    };
+
+    let parent = exe_path
+        .parent()
+        .ok_or("Unable to identify the current root folder.");
+
+    Ok(parent?.to_path_buf())
+}
+
+fn read_pdf_path() -> PathBuf {
+    let root_path = root_path().unwrap();
+    Path::join(&root_path, "order.pdf")
 }
 
 fn parse_pdf(file_text: &str) -> Vec<Card> {
@@ -127,15 +137,10 @@ fn parse_final_line(line: &str) -> (String, f32, i32) {
 }
 
 fn write_csv(cards: &Vec<Card>) -> Result<(), Box<dyn Error>> {
-    let root = match current_dir() {
-        Ok(path_buf) => path_buf,
-        Err(error) => panic!("Problem getting current dir: {:?}", error),
-    };
+    let csv_path = write_csv_path();
+    println!("Writing csv file in path [{}]", csv_path.display());
 
-    let path = Path::join(&root, "app/order.csv");
-
-    let mut wtr = Writer::from_path(path)?;
-    // let mut wtr = Writer::from_path("order.csv")?;
+    let mut wtr = Writer::from_path(csv_path)?;
 
     wtr.write_record(&["Card", "Rarity", "Condition", "Price", "Quantity", "Total"])?;
 
@@ -163,6 +168,11 @@ fn write_csv(cards: &Vec<Card>) -> Result<(), Box<dyn Error>> {
     wtr.flush()?;
 
     Ok(())
+}
+
+fn write_csv_path() -> PathBuf {
+    let root_path = root_path().unwrap();
+    Path::join(&root_path, "order.csv")
 }
 
 fn main() {
