@@ -5,7 +5,7 @@ use csv::Writer;
 use pdf_extract::extract_text;
 use std::env::current_dir;
 use std::error::Error;
-use std::fs::File;
+// use std::fs::File;
 use std::path::Path;
 
 fn read_pdf() -> String {
@@ -16,7 +16,8 @@ fn read_pdf() -> String {
 
     // let path = Path::with_file_name(&root, "tcg-invoice-converter/order.pdf");
     // let path = Path::with_file_name(&root, "tcg-invoice-converter/src/order.pdf");
-    let path = Path::with_file_name(&root, "order.pdf");
+    let path = Path::join(&root, "app/order.pdf");
+    println!("File path: {:?}", path);
 
     let _pdf: String = match extract_text(path) {
         Ok(pdf_output) => pdf_output,
@@ -78,7 +79,7 @@ fn parse_pdf(file_text: &str) -> Vec<Card> {
             }
         }
 
-        if pdf_line.contains(&"ITEMS DET AILS PRICE QUANTITY") {
+        if pdf_line.contains(&"ITEMS DET") {
             is_start_point = true;
         } else if pdf_line.contains(&"C o m m u n i t y   f o r  A l l") {
             is_start_point = false;
@@ -90,8 +91,8 @@ fn parse_pdf(file_text: &str) -> Vec<Card> {
 
 fn parse_final_line(line: &str) -> (String, f32, i32) {
     let mut condition = String::from("");
-    let mut price = 0.0;
-    let mut quantity = 0;
+    let price: f32;
+    let quantity: i32;
 
     let line_chunks: Vec<&str> = line.split(" ").collect();
 
@@ -126,7 +127,15 @@ fn parse_final_line(line: &str) -> (String, f32, i32) {
 }
 
 fn write_csv(cards: &Vec<Card>) -> Result<(), Box<dyn Error>> {
-    let mut wtr = Writer::from_path("order.csv")?;
+    let root = match current_dir() {
+        Ok(path_buf) => path_buf,
+        Err(error) => panic!("Problem getting current dir: {:?}", error),
+    };
+
+    let path = Path::join(&root, "app/order.csv");
+
+    let mut wtr = Writer::from_path(path)?;
+    // let mut wtr = Writer::from_path("order.csv")?;
 
     wtr.write_record(&["Card", "Rarity", "Condition", "Price", "Quantity", "Total"])?;
 
@@ -147,7 +156,7 @@ fn write_csv(cards: &Vec<Card>) -> Result<(), Box<dyn Error>> {
             rounded_total,
         ]) {
             Ok(_) => {}
-            Err(error) => panic!("{:?}", error),
+            Err(error) => panic!("[write_record] Error: {:?}", error),
         }
     }
 
@@ -159,5 +168,8 @@ fn write_csv(cards: &Vec<Card>) -> Result<(), Box<dyn Error>> {
 fn main() {
     let file_text = read_pdf();
     let cards = parse_pdf(&file_text);
-    write_csv(&cards);
+    match write_csv(&cards) {
+        Ok(_) => println!("Process was completed"),
+        Err(err) => panic!("[write_csv] Error: {:?}", err),
+    };
 }
